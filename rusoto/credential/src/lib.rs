@@ -53,12 +53,12 @@ use hyper::Error as HyperError;
 
 /// AWS API access credentials, including access key, secret key, token (for IAM profiles),
 /// expiration timestamp, and claims from federated login.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Default)]
 pub struct AwsCredentials {
     #[serde(rename = "AccessKeyId")]
-    key: String,
+    key: Option<String>,
     #[serde(rename = "SecretAccessKey")]
-    secret: String,
+    secret: Option<String>,
     #[serde(rename = "Token")]
     token: Option<String>,
     #[serde(rename = "Expiration")]
@@ -81,8 +81,8 @@ impl AwsCredentials {
         S: Into<String>,
     {
         AwsCredentials {
-            key: key.into(),
-            secret: secret.into(),
+            key: Some(key.into()),
+            secret: Some(secret.into()),
             token: token,
             expires_at: expires_at,
             claims: BTreeMap::new(),
@@ -90,13 +90,13 @@ impl AwsCredentials {
     }
 
     /// Get a reference to the access key ID.
-    pub fn aws_access_key_id(&self) -> &str {
-        &self.key
+    pub fn aws_access_key_id(&self) -> Option<&str> {
+        self.key.as_ref().map(String::as_str)
     }
 
     /// Get a reference to the secret access key.
-    pub fn aws_secret_access_key(&self) -> &str {
-        &self.secret
+    pub fn aws_secret_access_key(&self) -> Option<&str> {
+        self.secret.as_ref().map(String::as_str)
     }
 
     /// Get a reference to the expiry time.
@@ -225,6 +225,16 @@ impl<P: ProvideAwsCredentials> ProvideAwsCredentials for Arc<P> {
     type Future = P::Future;
     fn credentials(&self) -> Self::Future {
         P::credentials(&*self)
+    }
+}
+
+/// Provider for anonymous API Accesses, currently only used for S3
+#[derive(Debug, Clone, Default)]
+pub struct AnonymousProvider;
+impl ProvideAwsCredentials for AnonymousProvider {
+    type Future = Box<Future<Item = AwsCredentials, Error = CredentialsError> + 'static + Send>;
+    fn credentials(&self) -> Self::Future {
+        Box::new(futures::future::ok(AwsCredentials::default()))
     }
 }
 
@@ -432,6 +442,7 @@ pub struct ChainProvider {
     instance_metadata_provider: InstanceMetadataProvider,
     container_provider: ContainerProvider,
     profile_provider: Option<ProfileProvider>,
+    anonymous_provider: AnonymousProvider,
 }
 
 impl ChainProvider {
@@ -463,6 +474,7 @@ impl ProvideAwsCredentials for ChainProvider {
         let profile_provider = self.profile_provider.clone();
         let instance_metadata_provider = self.instance_metadata_provider.clone();
         let container_provider = self.container_provider.clone();
+        let anonymous_provider = self.anonymous_provider.clone();
         let future = self
             .environment_provider
             .credentials()
@@ -472,6 +484,7 @@ impl ProvideAwsCredentials for ChainProvider {
             })
             .or_else(move |_| container_provider.credentials())
             .or_else(move |_| instance_metadata_provider.credentials())
+            .or_else(move |_| anonymous_provider.credentials())
             .or_else(|_| {
                 Err(CredentialsError::new(
                     "Couldn't find AWS credentials in environment, credentials file, or IAM role.",
@@ -491,6 +504,7 @@ impl ChainProvider {
             profile_provider: ProfileProvider::new().ok(),
             instance_metadata_provider: InstanceMetadataProvider::new(),
             container_provider: ContainerProvider::new(),
+            anonymous_provider: AnonymousProvider::default(),
         }
     }
 
@@ -501,6 +515,7 @@ impl ChainProvider {
             profile_provider: Some(profile_provider),
             instance_metadata_provider: InstanceMetadataProvider::new(),
             container_provider: ContainerProvider::new(),
+            anonymous_provider: AnonymousProvider::default(),
         }
     }
 }
@@ -539,8 +554,8 @@ mod tests {
     use std::io::Read;
     use std::path::Path;
 
-    use futures::Future;
     use crate::test_utils::{is_secret_hidden_behind_asterisks, lock, ENV_MUTEX, SECRET};
+    use futures::Future;
 
     use super::*;
 
@@ -573,8 +588,11 @@ mod tests {
             "Failed to get credentials from profile provider using tests/sample-data/multiple_profile_credentials",
         );
 
-        assert_eq!(credentials.aws_access_key_id(), "foo_access_key");
-        assert_eq!(credentials.aws_secret_access_key(), "foo_secret_key");
+        assert_eq!(credentials.aws_access_key_id().unwrap(), "foo_access_key");
+        assert_eq!(
+            credentials.aws_secret_access_key().unwrap(),
+            "foo_secret_key"
+        );
     }
 
     #[test]
@@ -605,9 +623,12 @@ mod tests {
         assert!(credentials.is_ok());
         let credentials = credentials.unwrap();
 
-        assert_eq!(credentials.aws_access_key_id(), "AKIAIOSFODNN7EXAMPLE");
         assert_eq!(
-            credentials.aws_secret_access_key(),
+            credentials.aws_access_key_id().unwrap(),
+            "AKIAIOSFODNN7EXAMPLE"
+        );
+        assert_eq!(
+            credentials.aws_secret_access_key().unwrap(),
             "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
         );
 

@@ -45,8 +45,8 @@ use crate::{non_empty_env_var, AwsCredentials, CredentialsError, ProvideAwsCrede
 ///
 /// let creds = EnvironmentProvider::default().credentials().wait().unwrap();
 ///
-/// assert_eq!(creds.aws_access_key_id(), "ANTN35UAENTS5UIAEATD");
-/// assert_eq!(creds.aws_secret_access_key(), "TtnuieannGt2rGuie2t8Tt7urarg5nauedRndrur");
+/// assert_eq!(creds.aws_access_key_id().unwrap(), "ANTN35UAENTS5UIAEATD");
+/// assert_eq!(creds.aws_secret_access_key().unwrap(), "TtnuieannGt2rGuie2t8Tt7urarg5nauedRndrur");
 /// assert_eq!(creds.token(), &Some("DfnGs8Td4rT8r4srxAg6Td4rT8r4srxAg6GtkTir".to_string()));
 /// assert!(creds.expires_at().is_none()); // doesn't expire
 ///
@@ -86,8 +86,8 @@ impl EnvironmentProvider {
     ///
     /// let creds = EnvironmentProvider::with_prefix("MYAPP").credentials().wait().unwrap();
     ///
-    /// assert_eq!(creds.aws_access_key_id(), "ANTN35UAENTS5UIAEATD");
-    /// assert_eq!(creds.aws_secret_access_key(), "TtnuieannGt2rGuie2t8Tt7urarg5nauedRndrur");
+    /// assert_eq!(creds.aws_access_key_id().unwrap(), "ANTN35UAENTS5UIAEATD");
+    /// assert_eq!(creds.aws_secret_access_key().unwrap(), "TtnuieannGt2rGuie2t8Tt7urarg5nauedRndrur");
     /// assert_eq!(creds.token(), &Some("DfnGs8Td4rT8r4srxAg6Td4rT8r4srxAg6GtkTir".to_string()));
     /// assert!(creds.expires_at().is_none()); // doesn't expire
     ///
@@ -191,9 +191,9 @@ fn get_critical_variable(var_name: String) -> Result<String, CredentialsError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::{lock, ENV_MUTEX};
     use chrono::Utc;
     use std::env;
-    use crate::test_utils::{lock, ENV_MUTEX};
 
     static AWS_ACCESS_KEY_ID: &str = "AWS_ACCESS_KEY_ID";
     static AWS_SECRET_ACCESS_KEY: &str = "AWS_SECRET_ACCESS_KEY";
@@ -216,8 +216,8 @@ mod tests {
         env::remove_var(AWS_SESSION_TOKEN);
         assert!(result.is_ok());
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "id");
-        assert_eq!(creds.aws_secret_access_key(), "secret");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "id");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "secret");
         assert_eq!(creds.token(), &Some("token".to_string()));
     }
 
@@ -232,8 +232,8 @@ mod tests {
         env::remove_var(AWS_SECRET_ACCESS_KEY);
         assert!(result.is_ok());
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "id");
-        assert_eq!(creds.aws_secret_access_key(), "secret");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "id");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "secret");
         assert_eq!(creds.token(), &None);
     }
 
@@ -316,8 +316,8 @@ mod tests {
         env::remove_var(AWS_CREDENTIAL_EXPIRATION);
         assert!(result.is_ok());
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "id");
-        assert_eq!(creds.aws_secret_access_key(), "secret");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "id");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "secret");
         assert_eq!(creds.token(), &Some("token".to_string()));
         assert_eq!(creds.expires_at(), &Some(now));
     }
@@ -363,8 +363,8 @@ mod tests {
         env::remove_var("MYAPP_CREDENTIAL_EXPIRATION");
         assert!(result.is_ok());
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "id");
-        assert_eq!(creds.aws_secret_access_key(), "secret");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "id");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "secret");
         assert_eq!(creds.token(), &Some("token".to_string()));
         assert_eq!(creds.expires_at(), &Some(now));
     }

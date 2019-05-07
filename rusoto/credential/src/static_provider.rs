@@ -42,13 +42,13 @@ impl StaticProvider {
     }
 
     /// Gets the AWS Access Key ID for this Static Provider.
-    pub fn get_aws_access_key_id(&self) -> &str {
-        &self.credentials.key
+    pub fn get_aws_access_key_id(&self) -> Option<&str> {
+        self.credentials.aws_access_key_id()
     }
 
     /// Gets the AWS Secret Access Key for this Static Provider.
-    pub fn get_aws_secret_access_key(&self) -> &str {
-        &self.credentials.secret
+    pub fn get_aws_secret_access_key(&self) -> Option<&str> {
+        self.credentials.aws_secret_access_key()
     }
 
     /// Determines if this Static Provider was given a Token.

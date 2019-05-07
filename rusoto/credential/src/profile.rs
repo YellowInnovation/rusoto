@@ -500,8 +500,8 @@ mod tests {
         let default_profile = profiles
             .get(DEFAULT)
             .expect("No Default profile in default_profile_credentials");
-        assert_eq!(default_profile.aws_access_key_id(), "foo");
-        assert_eq!(default_profile.aws_secret_access_key(), "bar");
+        assert_eq!(default_profile.aws_access_key_id().unwrap(), "foo");
+        assert_eq!(default_profile.aws_secret_access_key().unwrap(), "bar");
     }
 
     #[test]
@@ -517,14 +517,20 @@ mod tests {
         let foo_profile = profiles
             .get("foo")
             .expect("No foo profile in multiple_profile_credentials");
-        assert_eq!(foo_profile.aws_access_key_id(), "foo_access_key");
-        assert_eq!(foo_profile.aws_secret_access_key(), "foo_secret_key");
+        assert_eq!(foo_profile.aws_access_key_id().unwrap(), "foo_access_key");
+        assert_eq!(
+            foo_profile.aws_secret_access_key().unwrap(),
+            "foo_secret_key"
+        );
 
         let bar_profile = profiles
             .get("bar")
             .expect("No bar profile in multiple_profile_credentials");
-        assert_eq!(bar_profile.aws_access_key_id(), "bar_access_key");
-        assert_eq!(bar_profile.aws_secret_access_key(), "bar_secret_key");
+        assert_eq!(bar_profile.aws_access_key_id().unwrap(), "bar_access_key");
+        assert_eq!(
+            bar_profile.aws_secret_access_key().unwrap(),
+            "bar_secret_key"
+        );
     }
 
     #[test]
@@ -539,8 +545,8 @@ mod tests {
         let default_profile = profiles
             .get(DEFAULT)
             .expect("No default profile in full_profile_credentials");
-        assert_eq!(default_profile.aws_access_key_id(), "foo");
-        assert_eq!(default_profile.aws_secret_access_key(), "bar");
+        assert_eq!(default_profile.aws_access_key_id().unwrap(), "foo");
+        assert_eq!(default_profile.aws_secret_access_key().unwrap(), "bar");
     }
 
     #[test]
@@ -555,8 +561,8 @@ mod tests {
         assert!(result.is_ok());
 
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "foo_access_key");
-        assert_eq!(creds.aws_secret_access_key(), "foo_secret_key");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "foo_access_key");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "foo_secret_key");
     }
 
     #[test]
@@ -582,7 +588,10 @@ mod tests {
         let provider = result.unwrap();
         assert_eq!(provider.file_path().to_str().unwrap(), credentials_path);
         let creds = provider.credentials().wait();
-        assert_eq!(creds.unwrap().aws_access_key_id(), "bar_access_key");
+        assert_eq!(
+            creds.unwrap().aws_access_key_id().unwrap(),
+            "bar_access_key"
+        );
         env::remove_var(AWS_SHARED_CREDENTIALS_FILE);
         env::remove_var(AWS_PROFILE);
     }
@@ -616,8 +625,8 @@ mod tests {
         assert!(result.is_ok());
 
         let creds = result.ok().unwrap();
-        assert_eq!(creds.aws_access_key_id(), "baz_access_key");
-        assert_eq!(creds.aws_secret_access_key(), "baz_secret_key");
+        assert_eq!(creds.aws_access_key_id().unwrap(), "baz_access_key");
+        assert_eq!(creds.aws_secret_access_key().unwrap(), "baz_secret_key");
         env::remove_var(AWS_CONFIG_FILE);
     }
 
@@ -674,8 +683,8 @@ mod tests {
         let default_profile = profiles
             .get(DEFAULT)
             .expect("No default profile in full_profile_credentials");
-        assert_eq!(default_profile.aws_access_key_id(), "foo");
-        assert_eq!(default_profile.aws_secret_access_key(), "bar");
+        assert_eq!(default_profile.aws_access_key_id().unwrap(), "foo");
+        assert_eq!(default_profile.aws_secret_access_key().unwrap(), "bar");
     }
 
     #[test]

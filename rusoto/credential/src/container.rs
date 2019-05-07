@@ -163,8 +163,8 @@ fn new_request(uri: &str, env_var_name: &str) -> Result<Request<Body>, Credentia
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
     use crate::test_utils::{lock, ENV_MUTEX};
+    use std::env;
 
     #[test]
     fn request_from_relative_uri() {

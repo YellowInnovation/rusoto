@@ -12,8 +12,8 @@ use std::fmt;
 use std::str;
 use std::time::Duration;
 
-use bytes::Bytes;
 use base64;
+use bytes::Bytes;
 use hex;
 use hmac::{Hmac, Mac};
 use md5;
@@ -269,16 +269,18 @@ impl SignedRequest {
         self.params.put("X-Amz-Algorithm", "AWS4-HMAC-SHA256");
 
         self.remove_header("X-Amz-Credential");
-        self.params.put(
-            "X-Amz-Credential",
-            format!(
-                "{}/{}/{}/{}/aws4_request",
-                &creds.aws_access_key_id(),
-                &current_date,
-                self.region.name(),
-                self.service
-            ),
-        );
+        if let Some(access_key) = creds.aws_access_key_id() {
+            self.params.put(
+                "X-Amz-Credential",
+                format!(
+                    "{}/{}/{}/{}/aws4_request",
+                    access_key,
+                    &current_date,
+                    self.region.name(),
+                    self.service
+                ),
+            );
+        }
 
         self.remove_header("X-Amz-Expires");
         let expiration_time = format!("{}", expires_in.as_secs());
@@ -329,14 +331,16 @@ impl SignedRequest {
 
         debug!("string_to_sign: {}", string_to_sign);
 
-        let signature = sign_string(
-            &string_to_sign,
-            creds.aws_secret_access_key(),
-            current_time,
-            &self.region.name(),
-            &self.service,
-        );
-        self.params.put("X-Amz-Signature", signature);
+        if let Some(secret) = creds.aws_secret_access_key() {
+            let signature = sign_string(
+                &string_to_sign,
+                secret,
+                current_time,
+                &self.region.name(),
+                &self.service,
+            );
+            self.params.put("X-Amz-Signature", signature);
+        }
 
         format!(
             "{}://{}{}?{}",
@@ -463,25 +467,27 @@ impl SignedRequest {
         );
         let string_to_sign = string_to_sign(date, &hashed_canonical_request, &scope);
 
-        // sign the string
-        let signature = sign_string(
-            &string_to_sign,
-            creds.aws_secret_access_key(),
-            date,
-            &self.region.name(),
-            &self.service,
-        );
-
-        // build the actual auth header
-        let auth_header = format!(
-            "AWS4-HMAC-SHA256 Credential={}/{}, SignedHeaders={}, Signature={}",
-            &creds.aws_access_key_id(),
-            scope,
-            signed_headers,
-            signature
-        );
         self.remove_header("authorization");
-        self.add_header("authorization", &auth_header);
+
+        if let Some(secret) = creds.aws_secret_access_key() {
+            // sign the string
+            let signature = sign_string(
+                &string_to_sign,
+                secret,
+                date,
+                &self.region.name(),
+                &self.service,
+            );
+
+            if let Some(access_key) = creds.aws_access_key_id() {
+                // build the actual auth header
+                let auth_header = format!(
+                    "AWS4-HMAC-SHA256 Credential={}/{}, SignedHeaders={}, Signature={}",
+                    access_key, scope, signed_headers, signature
+                );
+                self.add_header("authorization", &auth_header);
+            }
+        }
     }
 }
 

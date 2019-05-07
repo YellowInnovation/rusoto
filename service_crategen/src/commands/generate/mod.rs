@@ -103,7 +103,7 @@ pub fn generate_services(
             let safe_name = k.replace("-", "_");
             let use_macro = k == "serde_derive" || k == "log" || k == "lazy_static";
             if use_macro {
-                return format!("#[macro_use]\nextern crate {};", safe_name);
+                return format!("#[allow(unused_imports)]\n#[macro_use]\nextern crate {};", safe_name);
             }
             format!("extern crate {};", safe_name)
         }).collect::<Vec<String>>().join("\n");
@@ -171,7 +171,7 @@ You may be looking for:
 ## Requirements
 
 Rust stable or beta are required to use Rusoto. Nightly is tested, but not guaranteed to be supported. Older
-versions _may_ be supported. The currently supported Rust versions can be found in the Rusoto project 
+versions _may_ be supported. The currently supported Rust versions can be found in the Rusoto project
 [`travis.yml`](https://github.com/rusoto/rusoto/blob/master/.travis.yml).
 
 On Linux, OpenSSL is required.
