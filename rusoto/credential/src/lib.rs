@@ -442,7 +442,6 @@ pub struct ChainProvider {
     instance_metadata_provider: InstanceMetadataProvider,
     container_provider: ContainerProvider,
     profile_provider: Option<ProfileProvider>,
-    anonymous_provider: AnonymousProvider,
 }
 
 impl ChainProvider {
@@ -474,7 +473,6 @@ impl ProvideAwsCredentials for ChainProvider {
         let profile_provider = self.profile_provider.clone();
         let instance_metadata_provider = self.instance_metadata_provider.clone();
         let container_provider = self.container_provider.clone();
-        let anonymous_provider = self.anonymous_provider.clone();
         let future = self
             .environment_provider
             .credentials()
@@ -484,7 +482,6 @@ impl ProvideAwsCredentials for ChainProvider {
             })
             .or_else(move |_| container_provider.credentials())
             .or_else(move |_| instance_metadata_provider.credentials())
-            .or_else(move |_| anonymous_provider.credentials())
             .or_else(|_| {
                 Err(CredentialsError::new(
                     "Couldn't find AWS credentials in environment, credentials file, or IAM role.",
@@ -504,7 +501,6 @@ impl ChainProvider {
             profile_provider: ProfileProvider::new().ok(),
             instance_metadata_provider: InstanceMetadataProvider::new(),
             container_provider: ContainerProvider::new(),
-            anonymous_provider: AnonymousProvider::default(),
         }
     }
 
@@ -515,7 +511,6 @@ impl ChainProvider {
             profile_provider: Some(profile_provider),
             instance_metadata_provider: InstanceMetadataProvider::new(),
             container_provider: ContainerProvider::new(),
-            anonymous_provider: AnonymousProvider::default(),
         }
     }
 }
@@ -564,6 +559,7 @@ mod tests {
         fn is_send_and_sync<T: Send + Sync>() {}
 
         is_send_and_sync::<ChainProvider>();
+        is_send_and_sync::<AnonymousProvider>();
         is_send_and_sync::<AutoRefreshingProvider<ChainProvider>>();
         is_send_and_sync::<DefaultCredentialsProvider>();
     }
